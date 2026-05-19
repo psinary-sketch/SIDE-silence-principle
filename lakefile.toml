@@ -1,0 +1,6 @@
+name = "SIDESilencePrinciple"
+version = "0.1.0"
+defaultTargets = ["SIDESilencePrinciple"]
+
+[[lean_lib]]
+name = "SIDESilencePrinciple"
