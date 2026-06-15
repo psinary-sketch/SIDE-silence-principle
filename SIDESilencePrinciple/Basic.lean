@@ -12,11 +12,16 @@
     essential ⇒ universal ⇒ constant action ⇒ silent (κ = 0)
 
   This kernel verifies:
-   - The four-step chain as a propositional implication
+   - The GENUINE universal silence theorem (§3b): universal interfaces have
+     κ = 0, proved by factorization over all measurements — a real action
+     function, not Bool fields (type-generic; mirrors Kernel/SilenceTheorem.lean,
+     vendored vanilla with attribution)
+   - The decidable Bool chain (§3) as a finite shadow of that theorem
    - The load-bearing instances (product formula, distributive law) at κ = 0
    - A tested panel of essential interfaces with low behavioral κ
    - The falsification scope (single-structure systems correctly excluded)
-   - The six consequences from SILENCE_AND_EMERGENCE_PAPER.md
+   - Consequences A, D, F from SILENCE_AND_EMERGENCE_PAPER.md (B, C, E are
+     manuscript-resident — not in-kernel derivations; see §7)
    - Connection to SIDE-structural-error-correction: Silence ⇒ Protection
 
   Vanilla Lean 4 — no Mathlib dependency.
@@ -91,10 +96,19 @@ def step4 (I : Interface) : Bool := (! I.constantAction) || isSilent I
 def chain_holds (I : Interface) : Bool :=
   step2 I && step3 I && step4 I
 
-/-! ## §3. The Universal Silence Theorem -/
+/-! ## §3. The Decidable Chain (Bool shadow of the universal theorem)
+
+  The finite, decidable Bool form of the silence argument: a modus-ponens
+  chain over an `Interface` record. Logic-verified — the chain composes —
+  but the three step-implications are HYPOTHESES (`chain_holds`) over Bool
+  fields, not derived from real structure. The genuine, content-bearing
+  theorem (real action function, κ = 0 by factorization over all
+  measurements) is `Universal.silence_universal` in §3b. Cite §3b, not this
+  shadow, as the Silence theorem.
+-/
 
 /-- 
-**Theorem 3.1 (Silence Principle).**
+**Lemma 3.1 (Decidable silence chain — Bool shadow of `Universal.silence_universal`).**
 
 If the four-step chain holds for I, then I essential implies I silent.
 
@@ -124,6 +138,79 @@ theorem silence_principle (I : Interface) :
   rw [h_c, Bool.not_true, Bool.false_or] at h_s
   -- h_s : isSilent I = true
   exact h_s
+
+/-! ## §3b. The Genuine Universal Silence Theorem (type-generic, derived)
+
+  The content-bearing form. Vendored from Kernel/SilenceTheorem.lean
+  (SIDE-kernel, axiom-free) and adapted to vanilla Lean 4: the output type
+  is a generic `R : Type` (the original's `import Mathlib.Data.Real.Basic`
+  was vestigial — the proof never uses ℝ). The interface carries a REAL
+  action `C.α → R`; `is_universal` says that action is constant; `kappa_zero`
+  quantifies over ALL measurements factoring through the interface; and
+  `silence_universal` PROVES universal ⇒ κ = 0 by factorization — not a chain
+  of hypotheses. Attribution: mirrors SilenceTheorem.silence_universal
+  (SIDE-kernel). Federation vendoring-with-attribution.
+-/
+
+namespace Universal
+
+structure ConfigurationSpace where
+  α : Type
+  nonempty : Nonempty α
+
+structure Interface (C : ConfigurationSpace) (R : Type) where
+  action : C.α → R
+  essential : Prop
+
+def Interface.is_universal {C : ConfigurationSpace} {R : Type}
+    (I : Interface C R) : Prop :=
+  ∀ c₁ c₂ : C.α, I.action c₁ = I.action c₂
+
+def factors_through {C : ConfigurationSpace} {R V : Type}
+    (M : C.α → V) (I : Interface C R) : Prop :=
+  ∃ f : R → V, ∀ c : C.α, M c = f (I.action c)
+
+def Interface.kappa_zero {C : ConfigurationSpace} {R : Type}
+    (I : Interface C R) : Prop :=
+  ∀ V : Type, ∀ M : C.α → V, factors_through M I →
+    ∀ c₁ c₂ : C.α, M c₁ = M c₂
+
+/-- **The Universal Silence Theorem.** Every universal interface has κ = 0:
+    M c = f (I.action c), and universality gives I.action c₁ = I.action c₂,
+    so M c₁ = M c₂. -/
+theorem silence_universal
+    {C : ConfigurationSpace} {R : Type}
+    (I : Interface C R) (h_univ : I.is_universal) :
+    I.kappa_zero := by
+  intro V M h_factors c₁ c₂
+  obtain ⟨f, hf⟩ := h_factors
+  rw [hf c₁, hf c₂, h_univ c₁ c₂]
+
+/-- **Contrapositive.** κ > 0 ⇒ not universal. -/
+theorem not_universal_of_kappa_positive
+    {C : ConfigurationSpace} {R : Type}
+    (I : Interface C R)
+    (h_transmits : ∃ V : Type, ∃ M : C.α → V, factors_through M I ∧
+      ∃ c₁ c₂ : C.α, M c₁ ≠ M c₂) :
+    ¬ I.is_universal := by
+  intro h_univ
+  obtain ⟨V, M, h_factors, c₁, c₂, h_ne⟩ := h_transmits
+  exact h_ne (silence_universal I h_univ V M h_factors c₁ c₂)
+
+/-- Non-triviality witness: the identity action on `Bool` is NOT universal,
+    so the theorem is not vacuous. -/
+def NonTrivialConfig : ConfigurationSpace := { α := Bool, nonempty := ⟨false⟩ }
+
+def distinguishing_interface : Interface NonTrivialConfig Bool :=
+  { action := id, essential := True }
+
+theorem distinguishing_not_universal :
+    ¬ distinguishing_interface.is_universal := by
+  intro h
+  have hb : (false : Bool) = true := h false true
+  exact absurd hb (by decide)
+
+end Universal
 
 /-! ## §4. Load-Bearing Instances (RH Proof) -/
 
@@ -264,24 +351,17 @@ def firewall (I : Interface) : Bool := isSilent I
 
 theorem firewall_product_formula : firewall product_formula = true := by decide
 
-/-- **Consequence B (Independence derived).**  The I-axiom of SIDE
-    (Independence of structural constraints) is a CONSEQUENCE of
-    interface silence, not an independent assumption. -/
-def independence_derived (I : Interface) : Bool := isSilent I
+/-! **Consequences B, C, E (Independence / SIDE-Exclusion / Structural-zero).**
 
-theorem independence_from_silence (I : Interface) (h : isSilent I = true) :
-    independence_derived I = true := by
-  simp [independence_derived, h]
-
-/-- **Consequence C (SIDE Exclusion follows from sealed darkness).**
-    The Mechanism Theorem and the Exclusion Principle apply to
-    systems with silent interfaces; sealed darkness is what
-    makes the exhaustive enumeration possible. -/
-def side_exclusion_applicable (I : Interface) : Bool := isSilent I
-
-theorem side_exclusion_from_silence (I : Interface) (h : isSilent I = true) :
-    side_exclusion_applicable I = true := by
-  simp [side_exclusion_applicable, h]
+    SILENCE_AND_EMERGENCE_PAPER lists these as consequences of the Silence
+    Principle, but their derivations are MANUSCRIPT-RESIDENT (Silence_of_
+    Foundations.md, SILENCE_AND_EMERGENCE_PAPER.md) — they are NOT in-kernel
+    results. Earlier drafts encoded each as `def consequence I := isSilent I`
+    with `isSilent I → consequence I`, i.e. `h → h`: vacuous, and the names
+    over-claimed (esp. "Independence is a consequence of Silence"). Removed
+    rather than restated hollow. To kernelize any of them, derive the named
+    consequence from `Universal.silence_universal` over a real interface — do
+    not alias it to `isSilent`. -/
 
 /-- **Consequence D (Resolution floor).**  For a system with N
     components and minimum prime p_min in its formation, the resolution
@@ -300,21 +380,6 @@ theorem cosmological_resolution_floor : resolution_floor_denom 81 3 = 243 := by 
 /-- Cubit substrate: N = 8 = 2³ vertices of (ℤ/2)³, p_min = 2.
     Resolution floor = 1/16. -/
 theorem cubit_resolution_floor : resolution_floor_denom 8 2 = 16 := by decide
-
-/-- **Consequence E (Structural-zero dynamics).**  Structural zeros
-    (dark features arising from κ = 0 interfaces) exhibit non-local
-    propagation: changes propagate at the speed of the structural
-    constraint, which is faster than the medium's signal speed because
-    the constraint is silent about behavioral parameters and acts
-    instantaneously across the interface.
-
-    Encoded structurally: a silent interface produces a "structural zero"
-    that does not propagate via local dynamics. -/
-def produces_structural_zero (I : Interface) : Bool := isSilent I
-
-theorem structural_zero_from_silence (I : Interface) (h : isSilent I = true) :
-    produces_structural_zero I = true := by
-  simp [produces_structural_zero, h]
 
 /-- **Consequence F (Emergence at dark joints).**  Emergent properties
     arise specifically at silent interfaces between independent
