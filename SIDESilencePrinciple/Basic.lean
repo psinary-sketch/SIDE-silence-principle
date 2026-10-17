@@ -11,18 +11,13 @@
   Restated in load-bearing form:
     essential ⇒ universal ⇒ constant action ⇒ silent (κ = 0)
 
-  This kernel verifies:
-   - The GENUINE universal silence theorem (§3b): universal interfaces have
-     κ = 0, proved by factorization over all measurements — a real action
-     function, not Bool fields (type-generic; mirrors Kernel/SilenceTheorem.lean,
-     vendored vanilla with attribution)
-   - The decidable Bool chain (§3) as a finite shadow of that theorem
-   - The load-bearing instances (product formula, distributive law) at κ = 0
-   - A tested panel of essential interfaces with low behavioral κ
-   - The falsification scope (single-structure systems correctly excluded)
-   - Consequences A, D, F from SILENCE_AND_EMERGENCE_PAPER.md (B, C, E are
-     manuscript-resident — not in-kernel derivations; see §7)
-   - Connection to SIDE-structural-error-correction: Silence ⇒ Protection
+  This kernel proves the universal silence theorem (Sec. 3b: universal =>
+  kappa = 0 by factorization) and the Bool chain (Sec. 3) as modus ponens
+  over its step hypotheses; the rest are decide checks on stipulated records
+  (product formula and distributive law at kappa = 0, a panel of entered
+  kappa values below 20, two out-of-scope records), Consequences A, D, F as
+  definitions with decide-checked instances, and the arithmetic 2*3 - 1 = 5
+  shared with SIDE-structural-error-correction.
 
   Vanilla Lean 4 — no Mathlib dependency.
   Toolchain: leanprover/lean4:v4.29.0-rc8.
@@ -110,10 +105,9 @@ def chain_holds (I : Interface) : Bool :=
 /-- 
 **Lemma 3.1 (Decidable silence chain — Bool shadow of `Universal.silence_universal`).**
 
-If the four-step chain holds for I, then I essential implies I silent.
-
-This is the structural statement: in any well-formed coupled system,
-essential interfaces carry zero behavioral information.
+If the Bool chain holds for the record I, then I.essential = true implies
+isSilent I = true (modus ponens over the chain's step hypotheses; the
+content-bearing form is Universal.silence_universal).
 -/
 theorem silence_principle (I : Interface) :
     chain_holds I = true → I.essential = true → isSilent I = true := by
@@ -341,7 +335,8 @@ theorem hydrogen_out_of_scope : inScope hydrogen_atom = false := by decide
 /-! ## §7. The Six Consequences
 
   SILENCE_AND_EMERGENCE_PAPER §1 lists six consequences of the Silence
-  Principle.  We kernelize the structural content of each.
+  Principle.  We encode A, D and F as definitions with decide-checked
+  instances; B, C and E are manuscript-resident and not kernelized here.
 -/
 
 /-- **Consequence A (Firewall).**  A silent interface isolates
@@ -414,10 +409,11 @@ def trivium_d_eff : Nat := 2 * num_silent_compartments_trivium - 1
 
 theorem trivium_d_eff_eq_five : trivium_d_eff = 5 := by decide
 
-/-- **Theorem 8.1 (Silence yields Protection).**  The formation distance
-    d_eff under formation-block errors equals 2·(silent compartments) − 1.
-    This is the bridge between the Silence Principle (Consequence A) and
-    the Formation Distance Theorem in SIDE-structural-error-correction. -/
+/-- **Theorem 8.1 (Silence yields Protection).**  By definition
+    trivium_d_eff = 2 * num_silent_compartments_trivium - 1 with
+    num_silent_compartments_trivium = 3 (so 5, the value
+    SIDE-structural-error-correction carries); this decide check restates
+    the definitions and derives nothing from silence. -/
 theorem silence_yields_protection :
     trivium_d_eff = 2 * num_silent_compartments_trivium - 1 ∧
     num_silent_compartments_trivium = 3 := by decide
