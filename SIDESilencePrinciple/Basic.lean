@@ -409,7 +409,7 @@ def trivium_d_eff : Nat := 2 * num_silent_compartments_trivium - 1
 
 theorem trivium_d_eff_eq_five : trivium_d_eff = 5 := by decide
 
-/-- **Theorem 8.1 (Silence yields Protection).**  By definition
+/-- **Theorem 8.1 (the d_eff arithmetic).**  By definition
     trivium_d_eff = 2 * num_silent_compartments_trivium - 1 with
     num_silent_compartments_trivium = 3 (so 5, the value
     SIDE-structural-error-correction carries); this decide check restates
